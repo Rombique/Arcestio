@@ -1,8 +1,34 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arcestio.PostrgesqlProvider", "Arcestio.PostrgesqlProvider\Arcestio.PostrgesqlProvider.csproj", "{4B8E5CB8-894F-403F-AC13-B15A451B0174}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arcestio", "Arcestio\Arcestio.csproj", "{2269D754-2E38-4544-A152-E44AB11A24DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arcestio.Core", "Arcestio.Core\Arcestio.Core.csproj", "{FA0EF99F-254F-4F01-8E47-16B7770F3E9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arcestio.Logic", "Arcestio.Logic\Arcestio.Logic.csproj", "{3D5B5D88-F143-4124-AB36-6300EC7FBA1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4B8E5CB8-894F-403F-AC13-B15A451B0174}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B8E5CB8-894F-403F-AC13-B15A451B0174}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B8E5CB8-894F-403F-AC13-B15A451B0174}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B8E5CB8-894F-403F-AC13-B15A451B0174}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2269D754-2E38-4544-A152-E44AB11A24DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2269D754-2E38-4544-A152-E44AB11A24DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2269D754-2E38-4544-A152-E44AB11A24DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2269D754-2E38-4544-A152-E44AB11A24DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA0EF99F-254F-4F01-8E47-16B7770F3E9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA0EF99F-254F-4F01-8E47-16B7770F3E9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA0EF99F-254F-4F01-8E47-16B7770F3E9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA0EF99F-254F-4F01-8E47-16B7770F3E9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D5B5D88-F143-4124-AB36-6300EC7FBA1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D5B5D88-F143-4124-AB36-6300EC7FBA1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D5B5D88-F143-4124-AB36-6300EC7FBA1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D5B5D88-F143-4124-AB36-6300EC7FBA1A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
