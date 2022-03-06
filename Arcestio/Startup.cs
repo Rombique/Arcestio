@@ -24,7 +24,6 @@ namespace Arcestio
 				{
 					services.AddOptions();
 					services.AddSingleton(options);
-					services.AddSingleton<IHasher, MD5Hasher>();
 					services.AddHostedService<ConsoleHostedService>();
 					services.Add(new ServiceDescriptor(
 						typeof(IConsoleAppRunner),

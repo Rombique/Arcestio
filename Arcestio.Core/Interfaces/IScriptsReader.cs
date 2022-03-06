@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Arcestio.Core.Entities;
 
 namespace Arcestio.Core.Interfaces
 {
 	public interface IScriptsReader
 	{
-		public Task<List<Script>> GetScriptsInFolderAsync(string folderName);
+		public Task<ICollection<Script>> GetScriptsInFolderAsync(string folderName);
 	}
 }

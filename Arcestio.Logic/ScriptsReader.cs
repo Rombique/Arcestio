@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Arcestio.Core;
+using Arcestio.Core.Entities;
 using Arcestio.Core.Interfaces;
 
 namespace Arcestio.Logic
@@ -21,18 +22,21 @@ namespace Arcestio.Logic
 			_folderPath = folderPath;
 		}
 
-		public async Task<List<Script>> GetScriptsInFolderAsync(string folderName)
+		public async Task<ICollection<Script>> GetScriptsInFolderAsync(string folderName)
 		{
 			var folderPath = $"{_folderPath}/{folderName}";
 			var result = new List<Script>();
 			if (!Directory.Exists(folderPath))
 				return result;
 
-			foreach (var file in Directory.EnumerateFiles(folderPath, "*.sql", SearchOption.AllDirectories))
+			var files = Directory.EnumerateFiles(folderPath, "*.sql", SearchOption.AllDirectories).ToList();
+
+			foreach (var file in files)
 			{
-				var filename = file.Split("\\").Last().Split(".").First();
+				var filename = Path.GetFileNameWithoutExtension(file);
+				var path = Path.GetDirectoryName(file);
 				var content = await File.ReadAllTextAsync(file);
-				var script = new Script(filename, folderName, content);
+				var script = new Script(filename, folderName, path, content);
 				result.Add(script);
 			}
 

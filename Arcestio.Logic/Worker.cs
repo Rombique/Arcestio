@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Arcestio.Core;
+using Arcestio.Core.Entities;
 using Arcestio.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -13,51 +16,80 @@ namespace Arcestio.Logic
 		private readonly ILogger<Worker> _logger;
 		private readonly IScriptsReader _scriptsReader;
 		private readonly IProviderWrapper _providerWrapper;
-		private readonly IHasher _hasher;
 		private readonly string[] _folderNames;
+		private ICollection<Folder> _foldersList = new List<Folder>();
 
 		public Worker(
 			ILogger<Worker> logger,
 			IProviderWrapper providerWrapper,
 			IScriptsReader scriptsReader,
-			IHasher hasher,
 			CommandLineOptions options)
 		{
 			_logger = logger;
 			_scriptsReader = scriptsReader;
 			_folderNames = options.Folders.Split(",");
 			_providerWrapper = providerWrapper;
-			_hasher = hasher;
 		}
 		
 		public async Task DoWorkAsync()
 		{
 			await _providerWrapper.SchemaVersionService.CreateTableIfNotExistsAsync();
-			foreach (var folder in _folderNames)
+			await SetupFoldersAsync();
+
+			var migrationResults = (await GetMigrationsResultsAsync()).ToList();
+			var migrationWithErrors = migrationResults.Where(p => p.IsNotValid).ToList();
+			migrationWithErrors.ForEach(p =>
+				_logger.LogCritical($"Migration {p.Name} from {p.Folder} is not valid!" +
+				                    $"\nPrevious hash: {p.PrevHash}. Current hash: {p.CurrentHash}."));
+			if (migrationWithErrors.Any())
 			{
-				var scripts = await _scriptsReader.GetScriptsInFolderAsync(folder);
-				await TryMigrateScriptsAsync(scripts);
+				throw new Exception("One or more migrations have not been validated");
 			}
-			await Task.CompletedTask;
+
+			await TryMigrateScriptsAsync(migrationResults);
 		}
 
-		private async Task TryMigrateScriptsAsync(IEnumerable<Script> scripts)
+		private async Task SetupFoldersAsync()
 		{
-			foreach (var script in scripts)
-				await TryMigrateScriptAsync(script);
+			foreach (var folderName in _folderNames)
+			{
+				var scripts = await _scriptsReader.GetScriptsInFolderAsync(folderName);
+				var subfolders = scripts.GroupBy(p => p.Path);
+				foreach (var subfolder in subfolders)
+				{
+					var newFolder = new Folder
+					{
+						Path = subfolder.Key,
+						Scripts = subfolder.Where(p => p.Path == subfolder.Key).ToList()
+					};
+					_foldersList.Add(newFolder);
+				}
+			}
+		}
+
+		private async Task TryMigrateScriptsAsync(ICollection<MigrationResult> migrationResults)
+		{
+			foreach (var folder in _foldersList)
+			{
+				var scripts = folder.Scripts;
+				var alreadyMigratedScripts = scripts
+					.Where(p => migrationResults.Any(mr => mr.Name == p.Name));
+				var notMigratedYet = scripts
+					.Except(alreadyMigratedScripts);
+				foreach (var script in notMigratedYet)
+				{
+					await TryMigrateScriptAsync(script);
+				}
+			}
 		}
 
 		private async Task TryMigrateScriptAsync(Script script)
 		{
 			var existedSchemaVersion = 
 				await _providerWrapper.SchemaVersionService.TryGetSchemaVersionAsync(script.Folder, script.Version);
-			var hash = _hasher.Hash(script.Name + script.SQL);
-
-			if (existedSchemaVersion is {Success: false} && existedSchemaVersion.Hash == hash)
-			{
-				
-			}
-			else if (existedSchemaVersion == null || hash != existedSchemaVersion.Hash)
+			var hashCode = script.GetHashCode();
+			
+			if (existedSchemaVersion == null || hashCode != existedSchemaVersion.HashCode)
 			{
 				var stopwatch = new Stopwatch();
 				stopwatch.Start();
@@ -68,7 +100,6 @@ namespace Arcestio.Logic
 					var schemaVersion = GetSchemaVersion(
 						script,
 						stopwatch.ElapsedMilliseconds,
-						hash,
 						"",
 						true
 					);
@@ -81,7 +112,6 @@ namespace Arcestio.Logic
 					var schemaVersion = GetSchemaVersion(
 						script,
 						stopwatch.ElapsedMilliseconds,
-						hash,
 						ex.Message,
 						false
 					);
@@ -92,10 +122,46 @@ namespace Arcestio.Logic
 			}
 		}
 
+		private async Task<IEnumerable<MigrationResult>> GetMigrationsResultsAsync()
+		{
+			var schemaVersions = await _providerWrapper.SchemaVersionService.GetAllSchemaVersionsAsync();
+			var checkMigrations = _foldersList
+				.Select(p => TryValidateFolderScriptsAsync(schemaVersions, p))
+				.ToList();
+			return checkMigrations.SelectMany(p => p).ToList();
+		}
+		
+		private ConcurrentBag<MigrationResult> TryValidateFolderScriptsAsync(ICollection<SchemaVersion> schemaVersions, Folder folder)
+		{
+			var result = new ConcurrentBag<MigrationResult>();
+			schemaVersions
+				.Where(p => p.Path == folder.Path)
+				.AsParallel()
+				.ForAll(sv =>
+			{
+				var successScriptInFolder = folder
+					.Scripts
+					.SingleOrDefault(s => s.Name == sv.Script && s.Version == sv.Version && sv.Success);
+				
+				if (successScriptInFolder == null &&
+				    folder.Scripts.Any(s => s.Name == sv.Script && s.Version == sv.Version)) 
+					return;
+				
+				var migrationResult = new MigrationResult
+				{
+					Folder = sv.Path,
+					Name = sv.Script,
+					CurrentHash = successScriptInFolder?.GetHashCode(),
+					PrevHash = sv.HashCode
+				};
+				result.Add(migrationResult);
+			});
+			return result;
+		}
+
 		private static SchemaVersion GetSchemaVersion(
 			Script script, 
-			long executionTime, 
-			string hash,
+			long executionTime,
 			string message,
 			bool success)
 		{
@@ -105,9 +171,9 @@ namespace Arcestio.Logic
 				Description = script.Description,
 				Script = script.Name,
 				ExecutionTime = executionTime,
-				Hash = hash,
+				HashCode = script.GetHashCode(),
 				InstalledOn = (long) new TimeSpan(DateTime.Now.Ticks).TotalMilliseconds,
-				Folder = script.Folder,
+				Path = script.Path,
 				Message = message,
 				Success = success
 			};

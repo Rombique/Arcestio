@@ -2,6 +2,7 @@
 using System.Data;
 using System.Threading.Tasks;
 using Arcestio.Core;
+using Arcestio.Core.Entities;
 using Arcestio.Core.Interfaces;
 using Npgsql;
 
@@ -15,22 +16,21 @@ namespace Arcestio.PostrgesqlProvider
 		{
 			_provider = new DbProvider(connectionString);
 		}
-		
-		
+
 		public async Task CreateTableIfNotExistsAsync()
 		{
 			var sql = $"CREATE TABLE IF NOT EXISTS {Constants.TableName}" +
 			          "( " +
 			          "id serial PRIMARY KEY, " +
-			          "version varchar, " +
-			          "description varchar, " +
-			          "folder varchar, " +
-			          "script varchar, " +
-			          "hash varchar, " +
-			          "installedon bigint, " +
-			          "executiontime bigint, " +
+			          "version varchar NOT NULL, " +
+			          "description varchar NOT NULL, " +
+			          "path varchar NOT NULL, " +
+			          "script varchar NOT NULL, " +
+			          "hashcode int NOT NULL, " +
+			          "installedon bigint NOT NULL, " +
+			          "executiontime bigint NOT NULL, " +
 			          "message varchar, " +
-			          "success boolean " +
+			          "success boolean NOT NULL" +
 			          ")";
 
 			await using var connection = _provider.Create();
@@ -43,20 +43,13 @@ namespace Arcestio.PostrgesqlProvider
 		public async Task AddNewRowAsync(SchemaVersion version)
 		{
 			var sql = $"INSERT INTO {Constants.TableName} " +
-			          "(version, description, folder, script, " +
-						"hash, installedon, executiontime, message, success) " +
-			          " VALUES " +
-			          "( " +
-			          $"'{version.Version}', " +
-			          $"'{version.Description}', " +
-			          $"'{version.Folder}', " +
-			          $"'{version.Script}', " +
-			          $"'{version.Hash}', " +
-			          $"{version.InstalledOn}, " +
-			          $"{version.ExecutionTime}, " +
-			          $"'{version.Message}', " +
-			          $"{version.Success}" +
-			          ")";
+			          $"({nameof(version.Version)}, {nameof(version.Description)}, " +
+			          $"{nameof(version.Path)}, {nameof(version.Script)}, " + $"{nameof(version.HashCode)}, {nameof(version.InstalledOn)}, " +
+			          $"{nameof(version.ExecutionTime)}, {nameof(version.Message)}, {nameof(version.Success)}) " +
+			          $" VALUES ( '{version.Version}', '{version.Description}', " +
+			          $"'{version.Path}', '{version.Script}', " +
+			          $"{version.HashCode}, {version.InstalledOn}, " +
+			          $"{version.ExecutionTime}, '{version.Message.Replace("\'", @"""")}', {version.Success} )";
 			await using var connection = _provider.Create();
 			var command = new NpgsqlCommand(sql, connection);
 			connection.Open();
@@ -64,7 +57,7 @@ namespace Arcestio.PostrgesqlProvider
 			await connection.CloseAsync();
 		}
 
-		public async Task<IEnumerable<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder)
+		public async Task<ICollection<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder)
 		{
 			var result = new List<SchemaVersion>();
 			var sql = $"SELECT * FROM {Constants.TableName} WHERE folder = '{folder}'";
@@ -81,10 +74,27 @@ namespace Arcestio.PostrgesqlProvider
 			return result;
 		}
 
+		public async Task<ICollection<SchemaVersion>> GetAllSchemaVersionsAsync()
+		{
+			var result = new List<SchemaVersion>();
+			var sql = $"SELECT * FROM {Constants.TableName}";
+			await using var connection = _provider.Create();
+			await using var command = new NpgsqlCommand(sql, connection);
+			connection.Open();
+			await using var reader = await command.ExecuteReaderAsync();
+			while (await reader.ReadAsync())
+			{
+				var schemaVersion = GetSchemaVersionFromRecord(reader);
+				result.Add(schemaVersion);
+			}
+			await connection.CloseAsync();
+			return result;
+		}
+
 		public async Task<SchemaVersion> TryGetSchemaVersionAsync(string folder, string version)
 		{
 			SchemaVersion result = null;
-			var sql = $"SELECT * FROM {Constants.TableName} WHERE folder = '{folder}' AND version = '{version}'";
+			var sql = $"SELECT * FROM {Constants.TableName} WHERE path = '{folder}' AND version = '{version}'";
 			await using var connection = _provider.Create();
 			await using var command = new NpgsqlCommand(sql, connection);
 			connection.Open();
@@ -103,9 +113,9 @@ namespace Arcestio.PostrgesqlProvider
 				Id = record.GetInt64(0),
 				Version = record.GetString(1),
 				Description = record.GetString(2),
-				Folder = record.GetString(3),
+				Path = record.GetString(3),
 				Script = record.GetString(4),
-				Hash = record.GetString(5),
+				HashCode = record.GetInt32(5),
 				InstalledOn = record.GetInt64(6),
 				ExecutionTime = record.GetInt64(7),
 				Message = record.GetString(8),

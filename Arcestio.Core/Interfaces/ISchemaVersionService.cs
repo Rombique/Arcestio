@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Arcestio.Core.Entities;
 
 namespace Arcestio.Core.Interfaces
 {
@@ -7,7 +8,8 @@ namespace Arcestio.Core.Interfaces
 	{
 		public Task CreateTableIfNotExistsAsync();
 		public Task AddNewRowAsync(SchemaVersion version);
-		public Task<IEnumerable<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder);
+		public Task<ICollection<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder);
+		public Task<ICollection<SchemaVersion>> GetAllSchemaVersionsAsync();
 		public Task<SchemaVersion> TryGetSchemaVersionAsync(string type, string version);
 	}
 }
