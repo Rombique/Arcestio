@@ -10,18 +10,9 @@ namespace Arcestio.Core.Entities
 		public string Folder { get; }
 		public string SQL { get; }
 
-		public string Version
-		{
-			get
-			{
-				return Name.Split("_").First();
-			}
-		}
-
+		public string Version => Name.Split("_").First();
+		public string Description => Name.Split("_", 2).Last();
 		
-		public string Description => Name.Split("_").Last();
-		
-
 		public Script()
 		{
 		}
