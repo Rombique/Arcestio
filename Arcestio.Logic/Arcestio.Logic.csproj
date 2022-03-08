@@ -6,6 +6,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Arcestio.Core\Arcestio.Core.csproj" />
+      <ProjectReference Include="..\Arcestio.MSSQLProvider\Arcestio.MSSQLProvider.csproj" />
       <ProjectReference Include="..\Arcestio.PostrgesqlProvider\Arcestio.PostrgesqlProvider.csproj" />
     </ItemGroup>
 

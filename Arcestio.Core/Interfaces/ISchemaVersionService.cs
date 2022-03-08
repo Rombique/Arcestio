@@ -10,6 +10,6 @@ namespace Arcestio.Core.Interfaces
 		public Task AddNewRowAsync(SchemaVersion version);
 		public Task<ICollection<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder);
 		public Task<ICollection<SchemaVersion>> GetAllSchemaVersionsAsync();
-		public Task<SchemaVersion> TryGetSchemaVersionAsync(string type, string version);
+		public Task<SchemaVersion> TryGetSchemaVersionAsync(string path, string version);
 	}
 }

@@ -91,10 +91,10 @@ namespace Arcestio.PostrgesqlProvider
 			return result;
 		}
 
-		public async Task<SchemaVersion> TryGetSchemaVersionAsync(string folder, string version)
+		public async Task<SchemaVersion> TryGetSchemaVersionAsync(string path, string version)
 		{
 			SchemaVersion result = null;
-			var sql = $"SELECT * FROM {Constants.TableName} WHERE path = '{folder}' AND version = '{version}'";
+			var sql = $"SELECT * FROM {Constants.TableName} WHERE path = '{path}' AND version = '{version}'";
 			await using var connection = _provider.Create();
 			await using var command = new NpgsqlCommand(sql, connection);
 			connection.Open();

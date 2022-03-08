@@ -1,6 +1,7 @@
 ﻿using Arcestio.Core;
 using Arcestio.Core.Interfaces;
-using Arcestio.PostrgesqlProvider;
+using Postgresql = Arcestio.PostrgesqlProvider;
+using MSSQL = Arcestio.MSSQLProvider;
 
 namespace Arcestio.Logic
 {
@@ -11,10 +12,16 @@ namespace Arcestio.Logic
 
 		public ProviderWrapper(CommandLineOptions options)
 		{
-			if (options.DatabaseProvider == Constants.Postgresql)
+			switch (options.DatabaseProvider)
 			{
-				SchemaVersionService = new SchemaVersionService(options.ConnectionString);
-				MigrationService = new MigrationService(options.ConnectionString);
+				case Constants.Postgresql:
+					SchemaVersionService = new Postgresql.SchemaVersionService(options.ConnectionString);
+					MigrationService = new Postgresql.MigrationService(options.ConnectionString);
+					break;
+				case Constants.MSSQL:
+					SchemaVersionService = new MSSQL.SchemaVersionService(options.ConnectionString);
+					MigrationService = new MSSQL.MigrationService(options.ConnectionString);
+					break;
 			}
 		}
 	}
