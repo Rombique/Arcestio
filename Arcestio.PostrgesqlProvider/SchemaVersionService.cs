@@ -57,23 +57,6 @@ namespace Arcestio.PostrgesqlProvider
 			await connection.CloseAsync();
 		}
 
-		public async Task<ICollection<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder)
-		{
-			var result = new List<SchemaVersion>();
-			var sql = $"SELECT * FROM {Constants.TableName} WHERE folder = '{folder}'";
-			await using var connection = _provider.Create();
-			await using var command = new NpgsqlCommand(sql, connection);
-			connection.Open();
-			await using var reader = await command.ExecuteReaderAsync();
-			while (await reader.ReadAsync())
-			{
-				var schemaVersion = GetSchemaVersionFromRecord(reader);
-				result.Add(schemaVersion);
-			}
-			await connection.CloseAsync();
-			return result;
-		}
-
 		public async Task<ICollection<SchemaVersion>> GetAllSchemaVersionsAsync()
 		{
 			var result = new List<SchemaVersion>();

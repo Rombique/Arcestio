@@ -35,18 +35,8 @@ namespace Arcestio.Logic
 		{
 			await _providerWrapper.SchemaVersionService.CreateTableIfNotExistsAsync();
 			await SetupFoldersAsync();
-
-			var migrationResults = (await GetMigrationsResultsAsync()).ToList();
-			var migrationWithErrors = migrationResults.Where(p => p.IsNotValid).ToList();
-			migrationWithErrors.ForEach(p =>
-				_logger.LogCritical($"Migration {p.Name} from {p.Folder} is not valid!" +
-				                    $"\nPrevious hash: {p.PrevHash}. Current hash: {p.CurrentHash}."));
-			if (migrationWithErrors.Any())
-			{
-				throw new Exception("One or more migrations have not been validated");
-			}
-
-			await TryMigrateScriptsAsync(migrationResults);
+			await TryMigrateCommonScriptsAsync();
+			await TryMigrateRepeatableScriptsAsync();
 		}
 
 		private async Task SetupFoldersAsync()
@@ -67,24 +57,36 @@ namespace Arcestio.Logic
 			}
 		}
 
-		private async Task TryMigrateScriptsAsync(ICollection<MigrationResult> migrationResults)
+		private async Task TryMigrateCommonScriptsAsync()
 		{
+			var migrationResults = (await GetMigrationsResultsAsync()).ToList();
+			var migrationWithErrors = migrationResults.Where(p => p.IsNotValid).ToList();
+			migrationWithErrors.ForEach(p =>
+				_logger.LogCritical($"Migration {p.Name} from {p.Folder} is not valid!" +
+				                    $"\nPrevious hash: {p.PrevHash}. Current hash: {p.CurrentHash}."));
+			if (migrationWithErrors.Any())
+			{
+				throw new Exception("One or more migrations have not been validated");
+			}
+			
 			foreach (var folder in _foldersList)
 			{
 				var scripts = folder.Scripts;
 				var alreadyMigratedScripts = scripts
 					.Where(p => migrationResults.Any(mr => mr.Name == p.Name));
-				var notMigratedYet = scripts
+				var notMigratedYet = scripts.Where(p => p.Version != Constants.RepeatableVersion)
 					.Except(alreadyMigratedScripts);
 				foreach (var script in notMigratedYet)
 				{
-					await TryMigrateScriptAsync(script);
+					await TryMigrateCommonScriptAsync(script);
 				}
 			}
 		}
 
-		private async Task TryMigrateScriptAsync(Script script)
+		private async Task TryMigrateCommonScriptAsync(Script script)
 		{
+			if (script.Version == Constants.RepeatableVersion)
+				return;
 			var existedSchemaVersion = 
 				await _providerWrapper.SchemaVersionService.TryGetSchemaVersionAsync(script.Folder, script.Version);
 			var hashCode = script.GetHashCode();
@@ -122,6 +124,24 @@ namespace Arcestio.Logic
 			}
 		}
 
+		private async Task TryMigrateRepeatableScriptsAsync()
+		{
+			var repeatableScripts = _foldersList.SelectMany(p => p.Scripts).Where(p => p.Version == Constants.RepeatableVersion).ToList();
+			foreach (var repeatableScript in repeatableScripts)
+			{
+				try
+				{
+					await _providerWrapper.MigrationService.TryExecuteScript(repeatableScript.SQL);
+					_logger.LogInformation($"Repeatable migration {repeatableScript.Name} executed successfuly");
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError($"Repeatable migration {repeatableScript.Name} was executed with error:\n {ex.Message}");
+					throw;
+				}
+			}
+		}
+
 		private async Task<IEnumerable<MigrationResult>> GetMigrationsResultsAsync()
 		{
 			var schemaVersions = await _providerWrapper.SchemaVersionService.GetAllSchemaVersionsAsync();
@@ -135,7 +155,7 @@ namespace Arcestio.Logic
 		{
 			var result = new ConcurrentBag<MigrationResult>();
 			schemaVersions
-				.Where(p => p.Path == folder.Path)
+				.Where(p => p.Path == folder.Path && !p.Version.StartsWith("R", StringComparison.InvariantCultureIgnoreCase))
 				.AsParallel()
 				.ForAll(sv =>
 			{

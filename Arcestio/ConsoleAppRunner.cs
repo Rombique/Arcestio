@@ -14,8 +14,15 @@ namespace Arcestio
 		
 		public async Task<int> Main(params string[] args)
 		{
-			await _worker.DoWorkAsync();
-			return 0;
+			try
+			{
+				await _worker.DoWorkAsync();
+				return 0;
+			}
+			catch
+			{
+				return 1;
+			}
 		}
 	}
 }
