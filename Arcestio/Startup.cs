@@ -36,6 +36,7 @@ namespace Arcestio
 					logging.ClearProviders();
 					logging.AddConsole(opts =>
 					{
+						opts.TimestampFormat = "[HH:mm:ss] ";
 						opts.IncludeScopes = false;
 					});
 				});

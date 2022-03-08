@@ -61,11 +61,6 @@ namespace Arcestio.MSSQLProvider
 			await connection.CloseAsync();
 		}
 
-		public Task<ICollection<SchemaVersion>> GetSchemaVersionsForFolderAsync(string folder)
-		{
-			throw new System.NotImplementedException();
-		}
-
 		public async Task<ICollection<SchemaVersion>> GetAllSchemaVersionsAsync()
 		{
 			var result = new List<SchemaVersion>();
