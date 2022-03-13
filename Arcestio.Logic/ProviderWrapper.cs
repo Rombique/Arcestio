@@ -15,11 +15,11 @@ namespace Arcestio.Logic
 			switch (options.DatabaseProvider)
 			{
 				case Constants.Postgresql:
-					SchemaVersionService = new Postgresql.SchemaVersionService(options.ConnectionString);
+					SchemaVersionService = new Postgresql.SchemaVersionService(options.ConnectionString, options.Table);
 					MigrationService = new Postgresql.MigrationService(options.ConnectionString);
 					break;
 				case Constants.MSSQL:
-					SchemaVersionService = new MSSQL.SchemaVersionService(options.ConnectionString);
+					SchemaVersionService = new MSSQL.SchemaVersionService(options.ConnectionString, options.Table);
 					MigrationService = new MSSQL.MigrationService(options.ConnectionString);
 					break;
 			}
