@@ -16,7 +16,6 @@
 ## Roadmap
 
  - Add supports for MySQL, Oracle and SQLite
- - Add supports for absolute path to scripts folder
 
 ## How to use
 
