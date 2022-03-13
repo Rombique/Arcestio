@@ -32,5 +32,13 @@ namespace Arcestio.Core
 			Default = "SQL",
 			HelpText = "Path to *.sql files")]
 		public string Path { get; set; }
+		
+		[Option(
+			shortName: 't', 
+			longName: "Table",
+			Required = false, 
+			Default = "zz_schema_version",
+			HelpText = "Schema version table name")]
+		public string Table { get; set; }
 	}
 }

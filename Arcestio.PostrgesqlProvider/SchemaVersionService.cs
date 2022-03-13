@@ -11,15 +11,17 @@ namespace Arcestio.PostrgesqlProvider
 	public class SchemaVersionService : ISchemaVersionService
 	{
 		private readonly IDbProvider _provider;
+		private readonly string _tableName;
 		
-		public SchemaVersionService(string connectionString)
+		public SchemaVersionService(string connectionString, string tableName)
 		{
 			_provider = new DbProvider(connectionString);
+			_tableName = tableName;
 		}
 
 		public async Task CreateTableIfNotExistsAsync()
 		{
-			var sql = $"CREATE TABLE IF NOT EXISTS {Constants.TableName}" +
+			var sql = $"CREATE TABLE IF NOT EXISTS public.{_tableName}" +
 			          "( " +
 			          "id serial PRIMARY KEY, " +
 			          "version varchar NOT NULL, " +
@@ -42,7 +44,7 @@ namespace Arcestio.PostrgesqlProvider
 
 		public async Task AddNewRowAsync(SchemaVersion version)
 		{
-			var sql = $"INSERT INTO {Constants.TableName} " +
+			var sql = $"INSERT INTO public.{_tableName} " +
 			          $"({nameof(version.Version)}, {nameof(version.Description)}, " +
 			          $"{nameof(version.Path)}, {nameof(version.Script)}, " + $"{nameof(version.HashCode)}, {nameof(version.InstalledOn)}, " +
 			          $"{nameof(version.ExecutionTime)}, {nameof(version.Message)}, {nameof(version.Success)}) " +
@@ -60,7 +62,7 @@ namespace Arcestio.PostrgesqlProvider
 		public async Task<ICollection<SchemaVersion>> GetAllSchemaVersionsAsync()
 		{
 			var result = new List<SchemaVersion>();
-			var sql = $"SELECT * FROM {Constants.TableName}";
+			var sql = $"SELECT * FROM public.{_tableName}";
 			await using var connection = _provider.Create();
 			await using var command = new NpgsqlCommand(sql, connection);
 			connection.Open();
@@ -77,7 +79,7 @@ namespace Arcestio.PostrgesqlProvider
 		public async Task<SchemaVersion> TryGetSchemaVersionAsync(string path, string version)
 		{
 			SchemaVersion result = null;
-			var sql = $"SELECT * FROM {Constants.TableName} WHERE path = '{path}' AND version = '{version}'";
+			var sql = $"SELECT * FROM public.{_tableName} WHERE path = '{path}' AND version = '{version}'";
 			await using var connection = _provider.Create();
 			await using var command = new NpgsqlCommand(sql, connection);
 			connection.Open();
