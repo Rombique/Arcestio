@@ -62,7 +62,7 @@ namespace Arcestio.Logic
 			var migrationResults = (await GetMigrationsResultsAsync()).ToList();
 			var migrationWithErrors = migrationResults.Where(p => p.IsNotValid).ToList();
 			migrationWithErrors.ForEach(p =>
-				_logger.LogCritical($"Migration {p.Name} from {p.Folder} is not valid!" +
+				_logger.LogCritical($"Migration {p.Name} from {p.Path} is not valid!" +
 				                    $"\nPrevious hash: {p.PrevHash}. Current hash: {p.CurrentHash}."));
 			if (migrationWithErrors.Any())
 			{
@@ -73,7 +73,7 @@ namespace Arcestio.Logic
 			{
 				var scripts = folder.Scripts;
 				var alreadyMigratedScripts = scripts
-					.Where(p => migrationResults.Any(mr => mr.Name == p.Name));
+					.Where(p => migrationResults.Any(mr => mr.Name == p.Name && mr.Path == p.Path));
 				var notMigratedYet = scripts.Where(p => p.Version != Constants.RepeatableVersion)
 					.Except(alreadyMigratedScripts);
 				foreach (var script in notMigratedYet)
@@ -169,7 +169,7 @@ namespace Arcestio.Logic
 				
 				var migrationResult = new MigrationResult
 				{
-					Folder = sv.Path,
+					Path = sv.Path,
 					Name = sv.Script,
 					CurrentHash = successScriptInFolder?.GetHashCode(),
 					PrevHash = sv.HashCode
